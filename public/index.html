@@ -370,6 +370,15 @@
 
       <!-- Divisor Convidado -->
       <div class="border-t border-white/10 pt-3 flex flex-col gap-2">
+        <div id="guestNickRow" class="hidden flex-col gap-2">
+          <label class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Apelido na Sala</label>
+          <input id="guestNickInput" type="text" maxlength="24" placeholder="Deixe em branco para gerar automatico"
+                 class="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors">
+          <div class="flex gap-2">
+            <button type="button" id="guestConfirmBtn" class="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all">Entrar na Sala</button>
+            <button type="button" id="guestAutoBtn" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-all">Auto</button>
+          </div>
+        </div>
         <button type="button" id="guestInstantBtn" class="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 border border-white/5 transition-all">
           <i data-lucide="user-x" class="w-4 h-4 text-slate-400"></i>
           <span>Continuar sem conta (Modo Convidado)</span>

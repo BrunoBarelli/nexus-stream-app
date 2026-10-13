@@ -48,7 +48,17 @@ class AuthManager {
   init() {
     this.openBtn.addEventListener('click', () => this.open(true));
     this.closeBtn.addEventListener('click', () => this.modal.classList.add('hidden'));
-    this.guestBtn.addEventListener('click', () => this.#continueAsGuest());
+    this.guestBtn.addEventListener('click', () => {
+      this.guestBtn.classList.add('hidden');
+      el('guestNickRow').classList.remove('hidden');
+      el('guestNickInput')?.focus();
+    });
+
+    el('guestConfirmBtn')?.addEventListener('click', () => this.#continueAsGuest());
+    el('guestAutoBtn')?.addEventListener('click', () => {
+      if (el('guestNickInput')) el('guestNickInput').value = '';
+      this.#continueAsGuest();
+    });
 
     window.handleGoogleCredentialResponse = (response) => this.#onGoogleCredential(response);
     window.addEventListener('load', () => setTimeout(() => this.#initGoogle(), 800));
@@ -102,7 +112,7 @@ class AuthManager {
   }
 
   #continueAsGuest() {
-    const nick = prompt('Digite um apelido para a sala (ou deixe em branco para automatico):', '');
+    const nick = sanitizeText(el('guestNickInput')?.value, 24);
     const name = sanitizeText(nick, 24) || `Convidado_${Math.floor(Math.random() * 8999 + 1000)}`;
     this.#login({ name, provider: 'guest' });
   }
@@ -431,7 +441,7 @@ class StreamController {
     this.socket.on('signal:ice-candidate', async ({ fromId, candidate }) => {
       const pc = this.peerConnections.get(fromId);
       if (pc && candidate) {
-        try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch {}
+        try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch { }
       }
     });
 
@@ -457,20 +467,15 @@ class StreamController {
         suppressLocalAudioPlayback: true
       };
 
+      const videoConstraints = {
+        width: { ideal: size.width },
+        height: { ideal: size.height },
+        frameRate: { ideal: cfg.fps }
+      };
+
       const stream = isCamera
-        ? await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: size.width }, height: { ideal: size.height }, frameRate: { ideal: cfg.fps } },
-            audio
-          })
-        : await navigator.mediaDevices.getDisplayMedia({
-            video: {
-              displaySurface: antiEcho ? 'window' : 'monitor',
-              width: { ideal: size.width, max: size.width },
-              height: { ideal: size.height, max: size.height },
-              frameRate: { ideal: cfg.fps, max: cfg.fps }
-            },
-            audio
-          });
+        ? await navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio })
+        : await navigator.mediaDevices.getDisplayMedia({ video: videoConstraints, audio });
 
       this.localStream = stream;
       this.video.srcObject = stream;
@@ -481,6 +486,7 @@ class StreamController {
       this.#updateLiveUI(true, true);
     } catch (err) {
       console.warn('Captura cancelada:', err);
+      Toast.show('Nao foi possivel iniciar a captura. Tente de novo.');
     }
   }
 
@@ -548,12 +554,12 @@ class StreamController {
       } else if (this.video.srcObject) {
         await this.video.requestPictureInPicture();
       }
-    } catch {}
+    } catch { }
   }
 
   #toggleFullscreen() {
     if (!document.fullscreenElement) {
-      this.liveStage.requestFullscreen().catch(() => {});
+      this.liveStage.requestFullscreen().catch(() => { });
     } else {
       document.exitFullscreen();
     }
