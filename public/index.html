@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Stream // Next-Gen Live</title>
+  <!-- Tailwind CSS, Lucide Icons & Google Identity Services SDK -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            aether: {
+              main: '#08090c',
+              surface: '#0f1117',
+              card: '#141720',
+              border: 'rgba(255, 255, 255, 0.08)',
+              emerald: '#10b981',
+              cyan: '#00f0ff',
+              fuchsia: '#d946ef',
+              blurple: '#5865f2'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-aether-main text-slate-100 h-screen flex flex-col font-sans overflow-hidden select-none relative">
+  <div class="ambient-glow"></div>
+
+  <!-- ========================================================
+       1. ILHA DE CONTROLE FLUTUANTE (DYNAMIC FLOATING ISLAND)
+       ======================================================== -->
+  <header class="fixed top-4 inset-x-0 z-40 flex items-center justify-between px-6 pointer-events-none">
+    
+    <!-- Esquerda: Logo Minimalista & Status da Sala -->
+    <div class="flex items-center gap-3 pointer-events-auto">
+      <div class="glass-pill px-3.5 py-1.5 rounded-full flex items-center gap-2.5 shadow-xl">
+        <div class="w-2.5 h-2.5 rounded-full bg-aether-emerald shadow-sm shadow-emerald-400/50" id="roomLiveDot"></div>
+        <span class="text-xs font-bold tracking-wide text-white">AETHER</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 text-slate-300 font-mono">P2P ZERO-LAG</span>
+      </div>
+    </div>
+
+    <!-- Centro: Ilha de Chamada (Pill Flutuante Premium) -->
+    <div class="glass-panel px-2.5 py-1.5 rounded-2xl flex items-center gap-2 shadow-2xl pointer-events-auto border border-white/10">
+      
+      <!-- Microfone -->
+      <button id="micToggleBtn" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all" title="Mutar/Desmutar Microfone">
+        <i data-lucide="mic" class="w-4 h-4" id="micIcon"></i>
+      </button>
+
+      <!-- Fone de Ouvido -->
+      <button id="deafenToggleBtn" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all" title="Mutar/Ativar Áudio">
+        <i data-lucide="volume-2" class="w-4 h-4" id="deafenIcon"></i>
+      </button>
+
+      <!-- Escudo Anti-Eco Badge Interativo -->
+      <button id="antiEchoBadgeBtn" class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm shadow-emerald-500/20" title="Escudo Anti-Eco: Impede que as vozes do Discord vazem na transmissão">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <span>Anti-Eco: <strong id="antiEchoStatusText">ATIVO</strong></span>
+      </button>
+
+      <div class="h-4 w-px bg-white/10"></div>
+
+      <!-- Compartilhar Tela -->
+      <button id="shareScreenIslandBtn" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-90 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-emerald-500/20 transition-all">
+        <i data-lucide="monitor" class="w-4 h-4"></i>
+        <span id="screenShareBtnLabel">Transmitir</span>
+      </button>
+
+      <!-- Câmera / OBS -->
+      <button id="shareCameraIslandBtn" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all" title="Câmera Virtual / OBS">
+        <i data-lucide="video" class="w-4 h-4"></i>
+      </button>
+
+      <!-- ENGRENAGEM DE CONFIGURAÇÕES ⚙️ -->
+      <button id="gearSettingsBtn" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all hover:rotate-45" title="Configurações de Transmissão (Presets, Resolução, FPS)">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Direita: Gavetas de Chat, Participantes & Login -->
+    <div class="flex items-center gap-2 pointer-events-auto">
+
+      <button id="authModalBtn" class="glass-pill px-3 py-1.5 rounded-full text-xs font-semibold hover:bg-white/15 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all" title="Entrar com Discord ou Convidado">
+        <div class="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] font-bold text-black" id="headerUserAvatar">R</div>
+        <span id="headerUserName">Convidado</span>
+      </button>
+
+      <button id="participantsDrawerBtn" class="glass-pill px-3 py-1.5 rounded-full text-xs font-semibold hover:bg-white/15 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all" title="Ver Participantes">
+        <i data-lucide="users" class="w-3.5 h-3.5 text-aether-cyan"></i>
+        <span id="participantsCount">1</span>
+      </button>
+
+      <button id="chatDrawerBtn" class="glass-pill px-3 py-1.5 rounded-full text-xs font-semibold hover:bg-white/15 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all" title="Abrir/Fechar Chat">
+        <i data-lucide="message-square" class="w-3.5 h-3.5 text-aether-fuchsia"></i>
+        <span>Chat</span>
+      </button>
+
+      <button id="shareRoomBtn" class="glass-pill px-3 py-1.5 rounded-full text-xs font-semibold hover:bg-white/15 text-slate-300 hover:text-white flex items-center gap-1.5 transition-all" title="Copiar Link da Sala">
+        <i data-lucide="link" class="w-3.5 h-3.5"></i>
+        <span>Convidar</span>
+      </button>
+    </div>
+
+  </header>
+
+  <!-- ========================================================
+       2. TELÃO PRINCIPAL (STAGE)
+       ======================================================== -->
+  <main class="flex-1 flex overflow-hidden pt-20 relative">
+
+    <!-- PALCO CENTRAL (VÍDEO OU HUB DE ENTRADA) -->
+    <div class="flex-1 relative flex items-center justify-center overflow-hidden" id="stageContainer">
+
+      <!-- ESTADO A: NENHUMA TRANSMISSÃO (HUB DE BOAS-VINDAS ELEGANTE) -->
+      <div id="idleHeroStage" class="flex flex-col items-center justify-center gap-8 max-w-2xl text-center px-6 animate-fade-in">
+        
+        <div class="relative flex items-center justify-center">
+          <div class="w-28 h-28 rounded-full bg-gradient-to-tr from-emerald-500/20 via-cyan-500/20 to-fuchsia-500/20 blur-2xl absolute pointer-events-none"></div>
+          <div class="w-20 h-20 rounded-2xl glass-panel flex items-center justify-center border border-white/15 shadow-2xl pulse-glow">
+            <i data-lucide="sparkles" class="w-8 h-8 text-aether-cyan"></i>
+          </div>
+        </div>
+
+        <div>
+          <h1 class="text-3xl font-extrabold text-white tracking-tight mb-2">
+            Transmissão em Tempo Real
+          </h1>
+          <p class="text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
+            Áudio isolado com escudo anti-eco, até 4K em 120 FPS e latência instantânea com conexão WebRTC ponto a ponto.
+          </p>
+        </div>
+
+        <!-- PRESETS RÁPIDOS DE 1 CLIQUE -->
+        <div class="flex items-center gap-2 p-1.5 rounded-2xl glass-panel border border-white/10 text-xs">
+          <button class="preset-btn px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-2 transition-all" data-preset="gamer">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+            <span>Modo Gamer (1080p • 120 FPS)</span>
+          </button>
+          <button class="preset-btn px-4 py-2 rounded-xl text-slate-400 hover:text-white font-medium flex items-center gap-2 transition-all" data-preset="cinema">
+            <i data-lucide="film" class="w-3.5 h-3.5"></i>
+            <span>Cinema (4K • 60 FPS)</span>
+          </button>
+          <button class="preset-btn px-4 py-2 rounded-xl text-slate-400 hover:text-white font-medium flex items-center gap-2 transition-all" data-preset="balanced">
+            <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
+            <span>Equilibrado (720p • 60 FPS)</span>
+          </button>
+        </div>
+
+        <!-- CARDS DE INÍCIO -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+          <button id="heroStartScreenBtn" class="p-6 rounded-2xl glass-panel hover:border-emerald-500/40 text-left transition-all duration-300 group hover:-translate-y-1 shadow-xl">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <i data-lucide="screen-share" class="w-5 h-5"></i>
+            </div>
+            <h3 class="font-bold text-white text-base mb-1">Compartilhar Tela / Jogo</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">Escolha um jogo ou janela com isolamento de áudio inteligente sem eco do Discord.</p>
+          </button>
+
+          <button id="heroStartCamBtn" class="p-6 rounded-2xl glass-panel hover:border-cyan-500/40 text-left transition-all duration-300 group hover:-translate-y-1 shadow-xl">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <i data-lucide="video" class="w-5 h-5"></i>
+            </div>
+            <h3 class="font-bold text-white text-base mb-1">Câmera Virtual ou OBS</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">Transmita cenas e overlays diretamente do OBS Studio ou sua webcam em alta definição.</p>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ESTADO B: TELÃO COM O VÍDEO ATIVO -->
+      <div id="videoLiveStage" class="hidden absolute inset-0 bg-black flex items-center justify-center group">
+        <video id="mainVideoPlayer" autoplay playsinline class="w-full h-full object-contain"></video>
+
+        <!-- Canvas de Reações Flutuantes -->
+        <div id="reactionCanvas" class="reaction-particle-canvas"></div>
+
+        <!-- Telemetria Flutuante no Topo Esquerdo do Vídeo -->
+        <div class="absolute top-6 left-6 px-3 py-1.5 rounded-xl glass-panel text-xs font-mono text-slate-300 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="telemetryStats">1080p @ 60 FPS • 0 ms</span>
+        </div>
+
+        <!-- Barra Inferior Flutuante de Controles do Vídeo -->
+        <div class="absolute bottom-6 inset-x-6 p-3 rounded-2xl glass-panel flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-2xl">
+          <div class="flex items-center gap-3">
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-mono font-bold" id="badgeActiveQuality">
+              1080p • 60 FPS
+            </span>
+            <span class="text-xs px-2.5 py-1 rounded-lg bg-white/10 text-slate-300 font-semibold" id="badgeActiveSound">
+              🛡️ Só do Jogo (Anti-Eco)
+            </span>
+          </div>
+
+          <!-- Reações Rápidas -->
+          <div class="flex items-center gap-1 glass-pill px-3 py-1 rounded-xl">
+            <button class="emoji-btn hover:scale-125 transition-transform text-lg px-1" data-emoji="🔥">🔥</button>
+            <button class="emoji-btn hover:scale-125 transition-transform text-lg px-1" data-emoji="🎮">🎮</button>
+            <button class="emoji-btn hover:scale-125 transition-transform text-lg px-1" data-emoji="🚀">🚀</button>
+            <button class="emoji-btn hover:scale-125 transition-transform text-lg px-1" data-emoji="💀">💀</button>
+            <button class="emoji-btn hover:scale-125 transition-transform text-lg px-1" data-emoji="👑">👑</button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="pipBtn" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white" title="Picture-in-Picture">
+              <i data-lucide="picture-in-picture-2" class="w-4 h-4"></i>
+            </button>
+            <button id="fullscreenBtn" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white" title="Tela Cheia">
+              <i data-lucide="maximize" class="w-4 h-4"></i>
+            </button>
+            <button id="stopLiveBtn" class="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-lg shadow-red-900/30">
+              Encerrar
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================================
+         3. GAVETA LATERAL DO CHAT (COLLAPSIBLE SIDEBAR)
+         ======================================================== -->
+    <aside id="chatDrawer" class="w-80 glass-panel border-l border-white/10 flex flex-col shrink-0 z-30 transition-all duration-300">
+      
+      <div class="p-4 border-b border-white/10 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="message-square" class="w-4 h-4 text-aether-fuchsia"></i>
+          <span class="font-bold text-white text-xs tracking-wide">CHAT DA SALA</span>
+        </div>
+        <button id="closeChatBtn" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Lista de Mensagens -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-3" id="chatMessageList">
+        <p class="text-center text-xs text-slate-500 my-auto" id="emptyChatPlaceholder">
+          Nenhuma mensagem ainda. Envie um oi para a sala!
+        </p>
+      </div>
+
+      <!-- Formulário de Mensagem -->
+      <form id="chatSubmitForm" class="p-3 border-t border-white/10 flex items-center gap-2">
+        <input type="text" id="chatTextInput" placeholder="Enviar mensagem..." class="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors">
+        <button type="submit" class="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition-all">
+          <i data-lucide="send" class="w-3.5 h-3.5"></i>
+        </button>
+      </form>
+
+    </aside>
+
+    <!-- ========================================================
+         4. GAVETA POPUP DE PARTICIPANTES (POPOVER)
+         ======================================================== -->
+    <div id="participantsPopover" class="hidden absolute top-20 right-6 w-64 glass-panel rounded-2xl p-4 shadow-2xl z-40 border border-white/10">
+      <div class="flex items-center justify-between pb-2 mb-3 border-b border-white/10">
+        <span class="text-xs font-bold text-white uppercase tracking-wider">Participantes</span>
+        <button id="closeParticipantsBtn" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+      </div>
+      <div class="space-y-1.5 max-h-60 overflow-y-auto" id="participantsContainer">
+        <!-- Renderizado dinamicamente -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================
+       5. MODAL DA ENGRENAGEM ⚙️ (CONFIGURAÇÕES AVANÇADAS)
+       ======================================================== -->
+  <div id="advancedSettingsModal" class="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-panel rounded-2xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-5 border border-white/15 animate-scale-in">
+      
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2 text-white font-bold text-base">
+          <i data-lucide="sliders" class="w-5 h-5 text-aether-emerald"></i>
+          <span>Opções de Transmissão</span>
+        </div>
+        <button id="closeAdvancedSettingsBtn" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Resolução -->
+      <div class="flex flex-col gap-2">
+        <label class="text-xs font-semibold text-slate-300">Resolução</label>
+        <div class="grid grid-cols-3 gap-2" id="advResSelector">
+          <button type="button" class="adv-res-pill py-2 text-xs font-medium text-slate-400 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500 transition-all" data-res="720">720p HD</button>
+          <button type="button" class="adv-res-pill py-2 text-xs font-bold rounded-xl bg-emerald-500/20 border border-emerald-500 text-emerald-300 transition-all shadow-sm" data-res="1080">1080p FHD</button>
+          <button type="button" class="adv-res-pill py-2 text-xs font-medium text-slate-400 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500 transition-all" data-res="2160">4K Ultra</button>
+        </div>
+      </div>
+
+      <!-- FPS -->
+      <div class="flex flex-col gap-2">
+        <label class="text-xs font-semibold text-slate-300">Taxa de Quadros (FPS)</label>
+        <div class="grid grid-cols-3 gap-2" id="advFpsSelector">
+          <button type="button" class="adv-fps-pill py-2 text-xs font-medium text-slate-400 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500 transition-all" data-fps="30">30 FPS</button>
+          <button type="button" class="adv-fps-pill py-2 text-xs font-bold rounded-xl bg-emerald-500/20 border border-emerald-500 text-emerald-300 transition-all shadow-sm" data-fps="60">60 FPS</button>
+          <button type="button" class="adv-fps-pill py-2 text-xs font-medium text-slate-400 rounded-xl bg-white/5 border border-white/5 hover:border-emerald-500 transition-all" data-fps="120">120 FPS ⚡</button>
+        </div>
+      </div>
+
+      <!-- Escudo Anti-Eco e Som -->
+      <div class="flex flex-col gap-2 bg-white/5 p-4 rounded-xl border border-white/10">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-bold text-white flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+            Escudo Anti-Eco
+          </span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">RECOMENDADO</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed mb-3">
+          Captura exclusivamente o som do seu jogo, sem vazar a voz de ninguém da chamada do Discord.
+        </p>
+
+        <div class="grid grid-cols-3 gap-1.5" id="advSoundSelector">
+          <button type="button" class="adv-sound-pill py-2 text-xs font-bold rounded-lg bg-emerald-500 text-white transition-all" data-sound="game_only">Só do jogo</button>
+          <button type="button" class="adv-sound-pill py-2 text-xs font-medium text-slate-400 rounded-lg hover:text-white transition-all" data-sound="all">Tudo</button>
+          <button type="button" class="adv-sound-pill py-2 text-xs font-medium text-slate-400 rounded-lg hover:text-white transition-all" data-sound="mute">Mudo</button>
+        </div>
+      </div>
+
+      <button id="saveAdvSettingsBtn" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs tracking-wide transition-all shadow-lg shadow-emerald-900/40">
+        Salvar e Fechar
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ========================================================
+       6. MODAL DE AUTENTICAÇÃO COMPLETO (GOOGLE, EMAIL OU CONVIDADO)
+       ======================================================== -->
+  <div id="authModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-panel rounded-2xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-5 border border-white/15 animate-scale-in">
+      
+      <!-- Cabeçalho de Boas-Vindas -->
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2 text-white font-bold text-base">
+          <i data-lucide="sparkles" class="w-5 h-5 text-aether-cyan"></i>
+          <span>Acessar Plataforma</span>
+        </div>
+        <button id="closeAuthBtn" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-300 leading-relaxed -mt-2">
+        <strong class="text-white">👋 Boas-vindas ao Nexus Stream!</strong><br>
+        Entre com sua conta Google ou continue como convidado sem cadastro:
+      </div>
+
+      <!-- BOTÃO OFICIAL GOOGLE (RENDERIZADO PELA API DO GOOGLE) -->
+      <div id="googleOfficialBtnWrapper" class="w-full flex justify-center py-1"></div>
+
+      <!-- Divisor -->
+      <div id="authDivider" class="flex items-center gap-3 hidden">
+        <div class="flex-1 h-px bg-white/10"></div>
+        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">ou</span>
+        <div class="flex-1 h-px bg-white/10"></div>
+      </div>
+
+      <!-- Divisor Convidado -->
+      <div class="border-t border-white/10 pt-3 flex flex-col gap-2">
+        <button type="button" id="guestInstantBtn" class="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-2 border border-white/5 transition-all">
+          <i data-lucide="user-x" class="w-4 h-4 text-slate-400"></i>
+          <span>Continuar sem conta (Modo Convidado)</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-6 inset-x-0 mx-auto w-fit px-4 py-2 rounded-xl glass-panel text-white text-xs font-bold shadow-2xl transition-all opacity-0 pointer-events-none transform translate-y-2 z-50 border border-white/20">
+    Link copiado com sucesso!
+  </div>
+
+  <script src="/config.js"></script>
+  <script src="/app.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

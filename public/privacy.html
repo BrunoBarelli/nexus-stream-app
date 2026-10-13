@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de Privacidade — Nexus Stream</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #08090c; color: #f1f2f4; max-width: 760px; margin: 0 auto; padding: 48px 24px; line-height: 1.6; }
+    h1 { color: #00f0ff; }
+    h2 { color: #10b981; margin-top: 32px; }
+    a { color: #00f0ff; }
+  </style>
+</head>
+<body>
+  <h1>Política de Privacidade — Nexus Stream</h1>
+  <p><strong>Última atualização:</strong> 12 de outubro de 2026</p>
+
+  <h2>1. Dados coletados</h2>
+  <p>O Nexus Stream é uma ferramenta de compartilhamento de tela em tempo real via WebRTC. Coletamos apenas o necessário para operar o serviço:</p>
+  <ul>
+    <li>Identificador de socket (gerado pelo servidor, sem identificação pessoal).</li>
+    <li>Apelido exibido na sala (fornecido voluntarymente pelo usuário).</li>
+    <li>Mensagens do chat da sala (limitadas a 300 caracteres, rate-limited).</li>
+  </ul>
+
+  <h2>2. Dados de áudio e vídeo</h2>
+  <p>A captura de tela e áudio ocorre localmente no navegador do usuário. O stream é transmitido diretamente ponto a ponto (WebRTC P2P) entre participantes. O servidor atua apenas como intermediário de sinalização (offer/answer/ICE) e não armazena ou retransmite o fluxo de vídeo.</p>
+
+  <h2>3. Cookies e armazenamento local</h2>
+  <p>Usamos <code>localStorage</code> do navegador para persistir o apelido e preferências de autenticação. Nenhum cookie de rastreamento de terceiros é utilizado.</p>
+
+  <h2>4. Compartilhamento com terceiros</h2>
+  <p>Não vendemos, alugamos ou compartilhamos dados pessoais com terceiros. O único serviço externo é o Discord, que hospeda a Activity embebida e aplica suas próprias políticas de privacidade.</p>
+
+  <h2>5. Retenção e exclusão</h2>
+  <p>Dados de sala são mantidos enquanto houver participantes ativos e removidos automaticamente ao sair o último participante. Mensagens de chat são limitadas a 100 por sala e expiram ao fechar a sala.</p>
+
+  <h2>6. Seus direitos</h2>
+  <p>Você pode sair da sala a qualquer momento, que interrompe a transmissão e remove seus dados da sessão. Para solicitar a exclusão de dados, contate o operador da instância.</p>
+
+  <h2>7. Contato</h2>
+  <p>Para questões de privacidade, entre em contato com o operador da instância do Nexus Stream.</p>
+</body>
+</html>

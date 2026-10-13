@@ -1,0 +1,1 @@
+window.NEXUS_CONFIG = { googleClientId: null };

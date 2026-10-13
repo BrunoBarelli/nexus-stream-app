@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compartilhar tela // NEXUS LIVE</title>
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-[#0b0c0e] text-[#f1f2f4] min-h-screen flex items-center justify-center p-4 selection:bg-[#c026d3] selection:text-white font-sans antialiased">
+
+  <!-- ========================================================
+       TELA 1: MODAL DE CONFIGURAÇÃO (O que está no print)
+       ======================================================== -->
+  <div id="setupView" class="bg-[#15161a] border border-white/5 rounded-2xl w-full max-w-[430px] p-6 shadow-2xl flex flex-col gap-5 relative overflow-hidden transition-all duration-300">
+
+    <!-- Título Principal -->
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold text-white tracking-tight">Compartilhar tela</h1>
+      <span class="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20 uppercase">
+        NITRO UNLOCKED
+      </span>
+    </div>
+
+    <!-- 1. Seção Captura -->
+    <div class="flex flex-col gap-2">
+      <label class="text-xs font-semibold text-[#8e9297]">Captura</label>
+      <div class="bg-[#1f2026] p-1 rounded-xl grid grid-cols-3 gap-1" id="captureModeSelector">
+        <button type="button" class="capture-btn py-2.5 text-xs font-bold rounded-lg bg-[#c026d3] text-white transition-all shadow-sm flex items-center justify-center" data-mode="screen">
+          Tela
+        </button>
+        <button type="button" class="capture-btn py-2.5 text-xs font-medium text-[#9ca3af] hover:text-white rounded-lg transition-all text-center leading-tight flex flex-col items-center justify-center" data-mode="turbo">
+          <span>NexusTurbo</span>
+          <span class="text-[9px] opacity-70">(120 FPS)</span>
+        </button>
+        <button type="button" class="capture-btn py-2.5 text-xs font-medium text-[#9ca3af] hover:text-white rounded-lg transition-all text-center leading-tight flex flex-col items-center justify-center" data-mode="camera">
+          <span class="truncate max-w-[110px]">Câmera</span>
+          <span class="text-[9px] text-[#38bdf8] font-semibold">(OBS, placa)</span>
+        </button>
+      </div>
+      <p class="text-xs text-[#71757e] leading-relaxed" id="captureDesc">
+        O normal. Você escolhe uma janela, uma aba ou a tela inteira no seletor do navegador.
+      </p>
+    </div>
+
+    <!-- 2. Seção Resolução -->
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <label class="text-xs font-semibold text-[#8e9297]">Resolução</label>
+        <span class="text-[10px] text-fuchsia-400 font-semibold flex items-center gap-1">
+          <i data-lucide="unlock" class="w-3 h-3"></i> 100% Gratuito
+        </span>
+      </div>
+      <div class="bg-[#1f2026] p-1 rounded-xl grid grid-cols-3 gap-1" id="resSelector">
+        <button type="button" class="res-pill py-2 text-xs font-medium text-[#9ca3af] hover:text-white rounded-lg transition-all" data-res="720">
+          720p
+        </button>
+        <button type="button" class="res-pill py-2 text-xs font-bold rounded-lg bg-[#c026d3] text-white shadow-sm transition-all flex items-center justify-center gap-1" data-res="1080">
+          1080p
+        </button>
+        <button type="button" class="res-pill py-2 text-xs font-medium text-[#9ca3af] hover:text-white rounded-lg transition-all flex items-center justify-center gap-1" data-res="2160">
+          Fonte (4K)
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Seção Quadros por segundo (FPS) -->
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <label class="text-xs font-semibold text-[#8e9297]">Quadros por segundo</label>
+        <span class="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+          <i data-lucide="zap" class="w-3 h-3"></i> Alta Fluidez
+        </span>
+      </div>
+      <div class="bg-[#1f2026] p-1 rounded-xl grid grid-cols-2 gap-1" id="fpsSelector">
+        <button type="button" class="fps-pill py-2 text-xs font-medium text-[#9ca3af] hover:text-white rounded-lg transition-all" data-fps="30">
+          30, mais detalhe
+        </button>
+        <button type="button" class="fps-pill py-2 text-xs font-bold rounded-lg bg-[#c026d3] text-white shadow-sm transition-all" data-fps="60">
+          60, mais fluido ✨
+        </button>
+      </div>
+    </div>
+
+    <!-- Alerta de Status -->
+    <div id="statusAlert" class="bg-[#241e17] border border-[#784617]/40 rounded-xl px-4 py-2.5 text-xs text-[#eab308] flex items-center justify-between">
+      <span id="statusMessage">Transmissão parada. Pronto para iniciar.</span>
+      <span class="w-2 h-2 rounded-full bg-yellow-500" id="statusDot"></span>
+    </div>
+
+    <!-- Botão Principal de Transmissão -->
+    <button id="mainActionBtn" class="w-full py-3.5 px-4 rounded-xl bg-[#c026d3] hover:bg-[#a21caf] text-white font-bold text-sm tracking-wide transition-all shadow-lg shadow-fuchsia-900/30 flex items-center justify-center gap-2 transform active:scale-[0.98]">
+      <i data-lucide="screen-share" class="w-4 h-4"></i>
+      <span id="mainBtnText">Escolher tela</span>
+    </button>
+
+    <!-- 4. Seção Som (ISOLAMENTO DE ÁUDIO & ZERO ECO) -->
+    <div class="flex flex-col gap-2 pt-1 border-t border-white/5">
+      <div class="flex items-center justify-between">
+        <label class="text-xs font-semibold text-[#8e9297]">Som</label>
+        <span class="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+          <i data-lucide="shield-check" class="w-3 h-3"></i> Anti-Eco
+        </span>
+      </div>
+      <div class="bg-[#1f2026] p-1 rounded-xl grid grid-cols-3 gap-1" id="soundSelector">
+        <button type="button" class="sound-pill py-2 text-xs font-bold rounded-lg bg-[#c026d3] text-white shadow-sm transition-all" data-sound="game_only">
+          Só do jogo
+        </button>
+        <button type="button" class="sound-pill py-2 text-xs font-medium text-[#9ca3af] hover:text-white rounded-lg transition-all" data-sound="all">
+          Tudo
+        </button>
+        <button type="button" class="sound-pill py-2 text-xs font-medium text-[#9ca3af] hover:text-white rounded-lg transition-all" data-sound="mute">
+          Sem som
+        </button>
+      </div>
+      <p class="text-xs text-[#71757e] leading-relaxed" id="soundDesc">
+        Tenta levar só o som da janela escolhida, sem as vozes do Discord. A tela inteira vai sem som.
+      </p>
+    </div>
+
+    <!-- 5. Seção Uso de internet -->
+    <div class="flex flex-col gap-1 pt-1 border-t border-white/5">
+      <div class="flex items-center justify-between text-xs font-semibold">
+        <span class="text-[#8e9297]">Uso de internet</span>
+        <span class="text-white font-bold font-mono" id="bandwidthDisplay">4,5 Mbps</span>
+      </div>
+      <p class="text-xs text-[#71757e] leading-relaxed">
+        É o seu upload uma vez só. Quem copia para cada pessoa é o servidor, com 3 ou com 30 assistindo.
+      </p>
+    </div>
+
+    <!-- 6. Rodapé com link de cópia -->
+    <div class="flex items-center justify-between pt-2 border-t border-white/5 text-xs text-[#9ca3af]">
+      <button id="copyLinkBtnSetup" class="hover:text-white transition-colors flex items-center gap-1.5">
+        <i data-lucide="link" class="w-3.5 h-3.5"></i>
+        <span>Copiar link para quem não está na call</span>
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- ========================================================
+       TELA 2: ESTÚDIO AO VIVO (Transmissão em Andamento)
+       ======================================================== -->
+  <div id="studioView" class="hidden w-full max-w-5xl flex flex-col gap-4 animate-fade-in">
+    
+    <!-- Barra Superior do Estúdio -->
+    <div class="bg-[#15161a] border border-white/5 rounded-2xl px-6 py-4 flex items-center justify-between shadow-xl">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 font-bold text-xs tracking-wider">
+          <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+          <span>AO VIVO</span>
+        </div>
+        <div class="h-4 w-px bg-white/10"></div>
+        <span id="liveDuration" class="font-mono text-xs text-slate-300 font-bold">00:00:00</span>
+      </div>
+
+      <!-- Badges de Qualidade Ativa e Espectadores -->
+      <div class="flex items-center gap-3">
+        <span id="studioQualityBadge" class="text-xs px-2.5 py-1 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-300 font-mono font-bold">
+          1080p • 60 FPS
+        </span>
+        <span id="studioSoundBadge" class="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-semibold flex items-center gap-1">
+          <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Só do Jogo
+        </span>
+        <div class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#1f2026] text-xs font-semibold text-slate-200">
+          <i data-lucide="users" class="w-3.5 h-3.5 text-fuchsia-400"></i>
+          <span id="studioViewerCount">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Telão Principal do Vídeo Transmitido -->
+    <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center group">
+      <video id="hostStudioVideo" autoplay muted playsinline class="w-full h-full object-contain"></video>
+
+      <!-- Canvas de Reações Flutuantes dos Amigos -->
+      <div id="studioReactionCanvas" class="reaction-particle-canvas"></div>
+
+      <!-- Badge Flutuante no Canto Superior Esquerdo -->
+      <div class="absolute top-4 left-4 px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-xs font-mono text-slate-300 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span>SEU FEED EM TEMPO REAL</span>
+      </div>
+
+      <!-- Barra Flutuante de Ações Rápidas no Hover -->
+      <div class="absolute bottom-4 inset-x-4 p-3 rounded-xl bg-[#15161a]/90 backdrop-blur-md border border-white/10 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-2xl">
+        <div class="flex items-center gap-2">
+          <button id="studioMuteBtn" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold flex items-center gap-1.5 transition-all">
+            <i data-lucide="volume-2" class="w-4 h-4"></i>
+            <span id="studioMuteText">Áudio Ativo</span>
+          </button>
+          <button id="studioCopyLinkBtn" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold flex items-center gap-1.5 transition-all">
+            <i data-lucide="link" class="w-4 h-4"></i>
+            <span>Copiar Link da Live</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="reopenSettingsBtn" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold flex items-center gap-1.5 transition-all">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+            <span>Ajustar Opções</span>
+          </button>
+
+          <button id="studioStopBtn" class="px-4 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-lg shadow-red-900/30">
+            <i data-lucide="square" class="w-4 h-4"></i>
+            <span>Encerrar Transmissão</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast Notificação -->
+  <div id="toast" class="fixed bottom-6 px-4 py-2.5 rounded-xl bg-[#c026d3] text-white text-xs font-bold shadow-2xl transition-all opacity-0 pointer-events-none transform translate-y-2 z-50">
+    Link da transmissão copiado para a área de transferência!
+  </div>
+
+  <script src="/streamer.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

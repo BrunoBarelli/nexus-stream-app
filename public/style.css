@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --bg-main: #08090c;
+  --bg-surface: #101217;
+  --bg-glass: rgba(18, 20, 28, 0.75);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --accent-cyan: #00f0ff;
+  --accent-emerald: #10b981;
+  --accent-fuchsia: #d946ef;
+  --accent-blurple: #5865f2;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-main);
+  color: #f3f4f6;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Fundo Futurista Sutil */
+.ambient-glow {
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(217, 70, 239, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 0% 100%, rgba(0, 240, 255, 0.05) 0%, transparent 40%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glassmorphism */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animação de Pulso Suave */
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.06); opacity: 1; filter: drop-shadow(0 0 16px rgba(16, 185, 129, 0.4)); }
+}
+
+.pulse-glow {
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+/* Partículas de Reação Flutuantes */
+.reaction-particle-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 30;
+}
+
+.floating-emoji {
+  position: absolute;
+  bottom: 80px;
+  font-size: 36px;
+  animation: floatEmoji 3s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));
+}
+
+@keyframes floatEmoji {
+  0% { transform: translateY(0) scale(0.4); opacity: 0; }
+  15% { transform: translateY(-30px) scale(1.2); opacity: 1; }
+  80% { opacity: 0.9; }
+  100% { transform: translateY(-380px) scale(0.95); opacity: 0; }
+}
+
+/* Scrollbar Minimalista */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}

@@ -1,0 +1,11 @@
+{
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/streamer", "destination": "/streamer.html" },
+    { "source": "/config.js", "destination": "/config.js" },
+    { "source": "/socket.io/socket.io.js", "destination": "/socket.io/socket.io.js" },
+    { "source": "/style.css", "destination": "/style.css" },
+    { "source": "/", "destination": "/index.html" }
+  ]
+}
